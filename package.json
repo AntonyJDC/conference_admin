@@ -11,6 +11,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@expo/metro-runtime": "~5.0.4",
     "@gorhom/bottom-sheet": "^5.1.4",
     "@react-navigation/bottom-tabs": "^7.3.13",
@@ -19,6 +20,8 @@
     "axios": "^1.9.0",
     "expo": "^53.0.9",
     "expo-image-picker": "~16.1.4",
+=======
+>>>>>>> 37f658cb19ad47b56d93c84799369db0ad69c299
     "expo-status-bar": "~2.2.3",
     "firebase": "^11.8.1",
     "nativewind": "latest",
@@ -40,6 +43,7 @@
     "eslint": "^9.25.1",
     "eslint-config-expo": "^9.2.0",
     "eslint-config-prettier": "^10.1.2",
+    "expo": "^53.0.9",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.11",
     "tailwindcss": "^3.4.0",
