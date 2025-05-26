@@ -9,36 +9,16 @@ import StatsScreen from '../app/stats/StatsScreen';
 import { EditEventScreen } from '../components/events/EditEventModal';
 import { CreateEventScreen } from 'components/events/CreateEventPage';
 
-const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-
-function TabNavigator() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: true,
-        tabBarIcon: ({ color, size }) => {
-          const iconName = route.name === 'Eventos' ? 'list' : 'bar-chart';
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: 'gray',
-      })}
-    >
-      <Tab.Screen name="Eventos" component={EventListScreen} />
-      <Tab.Screen name="Estadísticas" component={StatsScreen} />
-    </Tab.Navigator>
-  );
-}
 
 export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen
-          name="Home"
-          component={TabNavigator}
-          options={{ headerShown: false }}
+          name="EventList"
+          component={EventListScreen}
+          options={{ title: 'BizEvents' }}
         />
         <Stack.Screen
           name="EditEvent"
