@@ -1,5 +1,4 @@
 import {
-  FlatList,
   RefreshControl,
   View,
   ActivityIndicator,
@@ -8,8 +7,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  ScrollView,
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import {
+  JSXElementConstructor,
+  ReactElement,
+  ReactNode,
+  ReactPortal,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useEventStore } from '../../store/eventStore';
@@ -23,6 +31,7 @@ export default function EventListScreen() {
   const { events, loading, loadEvents, deleteEvent } = useEventStore();
   const [tab, setTab] = useState<'activos' | 'finalizados'>('activos');
   const [search, setSearch] = useState('');
+  const [activeSections, setActiveSections] = useState<number[]>([]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
@@ -55,7 +64,6 @@ export default function EventListScreen() {
     navigation.navigate('CreateEvent' as never);
   };
 
-  // Filtrado
   const now = dayjs();
   const filteredEvents = events
     .filter((e) =>
@@ -63,13 +71,19 @@ export default function EventListScreen() {
         ? dayjs(`${e.date} ${e.endTime}`).isAfter(now)
         : dayjs(`${e.date} ${e.endTime}`).isBefore(now)
     )
-    .filter((e) =>
-      e.title.toLowerCase().includes(search.toLowerCase())
-    );
+    .filter((e) => e.title.toLowerCase().includes(search.toLowerCase()));
+
+  const groupedEvents = useMemo(() => {
+    return filteredEvents.reduce((acc, event) => {
+      const date = event.date;
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(event);
+      return acc;
+    }, {} as Record<string, IEvent[]>);
+  }, [filteredEvents]);
 
   return (
     <View style={{ flex: 1, paddingTop: 8 }}>
-      {/* Tabs */}
       <View style={styles.tabs}>
         <TouchableOpacity
           onPress={() => setTab('activos')}
@@ -85,7 +99,6 @@ export default function EventListScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Buscador */}
       <TextInput
         placeholder="Buscar evento..."
         value={search}
@@ -93,26 +106,46 @@ export default function EventListScreen() {
         style={styles.searchInput}
       />
 
-      {/* Lista */}
-      {loading && <ActivityIndicator size="large" style={{ marginTop: 20 }} />}
-      <FlatList
-        data={filteredEvents}
-        keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadEvents} />}
-        renderItem={({ item }) => (
-          <EventCard
-            event={item}
-            onDelete={handleDelete}
-            onEdit={() => handleEdit(item)}
-          />
-        )}
-        ListEmptyComponent={
-          !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No hay eventos</Text> : null
-        }
-        contentContainerStyle={{ paddingBottom: 100 }}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+      ) : (
+        <ScrollView>
+          {Object.entries(groupedEvents).map(([date, events], index) => {
+            const isOpen = activeSections.includes(index);
 
-      {/* FAB */}
+            return (
+              <View key={date}>
+                <TouchableOpacity
+                  onPress={() =>
+                    setActiveSections((prev) =>
+                      prev.includes(index)
+                        ? prev.filter((i) => i !== index)
+                        : [...prev, index]
+                    )
+                  }
+                  style={styles.accordionHeader}
+                >
+                  <Text style={styles.accordionHeaderText}>{dayjs(date).format('dddd, D MMMM YYYY')}</Text>
+                </TouchableOpacity>
+
+                {isOpen && (
+                  <View>
+                    {events.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        onDelete={handleDelete}
+                        onEdit={() => handleEdit(event)}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+
       <TouchableOpacity style={styles.fab} onPress={handleAdd}>
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
@@ -153,6 +186,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     borderColor: '#e5e7eb',
     borderWidth: 1,
+  },
+  accordionHeader: {
+    backgroundColor: '#f9fafb',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  accordionHeaderText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
   },
   fab: {
     position: 'absolute',
