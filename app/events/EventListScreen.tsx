@@ -1,5 +1,4 @@
 import {
-  RefreshControl,
   View,
   ActivityIndicator,
   Text,
@@ -7,17 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  LayoutAnimation,
+  UIManager,
+  Platform,
   ScrollView,
 } from 'react-native';
-import {
-  JSXElementConstructor,
-  ReactElement,
-  ReactNode,
-  ReactPortal,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useEventStore } from '../../store/eventStore';
@@ -27,16 +21,51 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import dayjs from 'dayjs';
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function EventListScreen() {
   const { events, loading, loadEvents, deleteEvent } = useEventStore();
   const [tab, setTab] = useState<'activos' | 'finalizados'>('activos');
   const [search, setSearch] = useState('');
-  const [activeSections, setActiveSections] = useState<number[]>([]);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     loadEvents();
   }, []);
+
+  const now = dayjs();
+  const filteredEvents = events
+    .filter((e) =>
+      tab === 'activos'
+        ? dayjs(`${e.date} ${e.endTime}`).isAfter(now)
+        : dayjs(`${e.date} ${e.endTime}`).isBefore(now)
+    )
+    .filter((e) => e.title.toLowerCase().includes(search.toLowerCase()));
+
+  const groupedEvents = useMemo(() => {
+    return filteredEvents.reduce((acc, event) => {
+      const date = event.date;
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(event);
+      return acc;
+    }, {} as Record<string, IEvent[]>);
+  }, [filteredEvents]);
+
+  useEffect(() => {
+    const allOpen: { [key: string]: boolean } = {};
+    Object.keys(groupedEvents).forEach((date) => {
+      allOpen[date] = true;
+    });
+    setOpenSections(allOpen);
+  }, [Object.keys(groupedEvents).join(',')]);
+
+  const toggleSection = (date: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenSections((prev) => ({ ...prev, [date]: !prev[date] }));
+  };
 
   const handleDelete = (id: string) => {
     Alert.alert('Eliminar evento', '¿Estás seguro de que deseas eliminar este evento?', [
@@ -63,24 +92,6 @@ export default function EventListScreen() {
   const handleAdd = () => {
     navigation.navigate('CreateEvent' as never);
   };
-
-  const now = dayjs();
-  const filteredEvents = events
-    .filter((e) =>
-      tab === 'activos'
-        ? dayjs(`${e.date} ${e.endTime}`).isAfter(now)
-        : dayjs(`${e.date} ${e.endTime}`).isBefore(now)
-    )
-    .filter((e) => e.title.toLowerCase().includes(search.toLowerCase()));
-
-  const groupedEvents = useMemo(() => {
-    return filteredEvents.reduce((acc, event) => {
-      const date = event.date;
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(event);
-      return acc;
-    }, {} as Record<string, IEvent[]>);
-  }, [filteredEvents]);
 
   return (
     <View style={{ flex: 1, paddingTop: 8 }}>
@@ -110,39 +121,33 @@ export default function EventListScreen() {
         <ActivityIndicator size="large" style={{ marginTop: 20 }} />
       ) : (
         <ScrollView>
-          {Object.entries(groupedEvents).map(([date, events], index) => {
-            const isOpen = activeSections.includes(index);
-
-            return (
-              <View key={date}>
-                <TouchableOpacity
-                  onPress={() =>
-                    setActiveSections((prev) =>
-                      prev.includes(index)
-                        ? prev.filter((i) => i !== index)
-                        : [...prev, index]
-                    )
-                  }
-                  style={styles.accordionHeader}
-                >
-                  <Text style={styles.accordionHeaderText}>{dayjs(date).format('dddd, D MMMM YYYY')}</Text>
-                </TouchableOpacity>
-
-                {isOpen && (
-                  <View>
-                    {events.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        onDelete={handleDelete}
-                        onEdit={() => handleEdit(event)}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
+          {Object.entries(groupedEvents).map(([date, events]) => (
+            <View key={date}>
+              <TouchableOpacity
+                onPress={() => toggleSection(date)}
+                style={styles.accordionHeader}
+              >
+                <Text style={styles.accordionHeaderText}>{dayjs(date).format('dddd, D MMMM YYYY')}</Text>
+                <Ionicons
+                  name={openSections[date] ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color="#374151"
+                />
+              </TouchableOpacity>
+              {openSections[date] && (
+                <View>
+                  {events.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      onDelete={handleDelete}
+                      onEdit={() => handleEdit(event)}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
         </ScrollView>
       )}
 
@@ -188,6 +193,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#f9fafb',
     paddingVertical: 10,
     paddingHorizontal: 16,
