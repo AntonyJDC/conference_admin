@@ -20,6 +20,9 @@ import { IEvent } from '../../types/event';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+
+dayjs.locale('es');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -31,6 +34,8 @@ export default function EventListScreen() {
   const [search, setSearch] = useState('');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({});
+  const [filterStatus, setFilterStatus] = useState<'todos' | 'activos' | 'finalizados'>('todos');
+
 
   useEffect(() => {
     loadEvents();
@@ -38,12 +43,14 @@ export default function EventListScreen() {
 
   const now = dayjs();
   const filteredEvents = events
-    .filter((e) =>
-      tab === 'activos'
-        ? dayjs(`${e.date} ${e.endTime}`).isAfter(now)
-        : dayjs(`${e.date} ${e.endTime}`).isBefore(now)
-    )
+    .filter((e) => {
+      const isAfter = dayjs(`${e.date} ${e.endTime}`).isAfter(now);
+      if (filterStatus === 'activos') return isAfter;
+      if (filterStatus === 'finalizados') return !isAfter;
+      return true;
+    })
     .filter((e) => e.title.toLowerCase().includes(search.toLowerCase()));
+
 
   const groupedEvents = useMemo(() => {
     return filteredEvents.reduce((acc, event) => {
@@ -95,30 +102,39 @@ export default function EventListScreen() {
 
   return (
     <View style={{ flex: 1, paddingTop: 8 }}>
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          onPress={() => setTab('activos')}
-          style={[styles.tab, tab === 'activos' && styles.activeTab]}
-        >
-          <Text style={[styles.tabText, tab === 'activos' && styles.activeTabText]}>Activos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setTab('finalizados')}
-          style={[styles.tab, tab === 'finalizados' && styles.activeTab]}
-        >
-          <Text style={[styles.tabText, tab === 'finalizados' && styles.activeTabText]}>Finalizados</Text>
-        </TouchableOpacity>
-      </View>
-
       <TextInput
         placeholder="Buscar evento..."
         value={search}
         onChangeText={setSearch}
         style={styles.searchInput}
       />
+      <View style={styles.filterTags}>
+        {['todos', 'activos', 'finalizados'].map((status) => (
+          <TouchableOpacity
+            key={status}
+            onPress={() => setFilterStatus(status as any)}
+            style={[
+              styles.filterTag,
+              filterStatus === status && styles.filterTagActive
+            ]}
+          >
+            <Text style={[
+              styles.filterTagText,
+              filterStatus === status && styles.filterTagTextActive
+            ]}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+      ) : filteredEvents.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="calendar-outline" size={48} color="#9ca3af" />
+          <Text style={styles.emptyText}>No hay eventos</Text>
+        </View>
       ) : (
         <ScrollView>
           {Object.entries(groupedEvents).map(([date, events]) => (
@@ -223,4 +239,39 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
+  filterTags: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 10,
+  },
+  filterTag: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 20,
+  },
+  filterTagActive: {
+    backgroundColor: '#2563eb',
+  },
+  filterTagText: {
+    color: '#374151',
+    fontWeight: '500',
+  },
+  filterTagTextActive: {
+    color: '#fff',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6b7280', // gris neutro
+    fontWeight: '500',
+  },
+
 });
