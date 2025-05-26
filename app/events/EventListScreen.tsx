@@ -7,8 +7,9 @@ import {
   Alert,
   TouchableOpacity,
   StyleSheet,
+  TextInput,
 } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useEventStore } from '../../store/eventStore';
@@ -16,11 +17,13 @@ import { EventCard } from '../../components/events/EventCard';
 import { IEvent } from '../../types/event';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
+import dayjs from 'dayjs';
 
 export default function EventListScreen() {
   const { events, loading, loadEvents, deleteEvent } = useEventStore();
-  type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-  const navigation = useNavigation<NavigationProp>();
+  const [tab, setTab] = useState<'activos' | 'finalizados'>('activos');
+  const [search, setSearch] = useState('');
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     loadEvents();
@@ -49,15 +52,51 @@ export default function EventListScreen() {
   };
 
   const handleAdd = () => {
-    navigation.navigate({ name: 'CreateEvent' } as never);
-
+    navigation.navigate('CreateEvent' as never);
   };
 
+  // Filtrado
+  const now = dayjs();
+  const filteredEvents = events
+    .filter((e) =>
+      tab === 'activos'
+        ? dayjs(`${e.date} ${e.endTime}`).isAfter(now)
+        : dayjs(`${e.date} ${e.endTime}`).isBefore(now)
+    )
+    .filter((e) =>
+      e.title.toLowerCase().includes(search.toLowerCase())
+    );
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingTop: 8 }}>
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity
+          onPress={() => setTab('activos')}
+          style={[styles.tab, tab === 'activos' && styles.activeTab]}
+        >
+          <Text style={[styles.tabText, tab === 'activos' && styles.activeTabText]}>Activos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setTab('finalizados')}
+          style={[styles.tab, tab === 'finalizados' && styles.activeTab]}
+        >
+          <Text style={[styles.tabText, tab === 'finalizados' && styles.activeTabText]}>Finalizados</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Buscador */}
+      <TextInput
+        placeholder="Buscar evento..."
+        value={search}
+        onChangeText={setSearch}
+        style={styles.searchInput}
+      />
+
+      {/* Lista */}
       {loading && <ActivityIndicator size="large" style={{ marginTop: 20 }} />}
       <FlatList
-        data={events}
+        data={filteredEvents}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadEvents} />}
         renderItem={({ item }) => (
@@ -70,9 +109,10 @@ export default function EventListScreen() {
         ListEmptyComponent={
           !loading ? <Text style={{ textAlign: 'center', marginTop: 20 }}>No hay eventos</Text> : null
         }
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
-      {/* Floating Action Button */}
+      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={handleAdd}>
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
@@ -81,6 +121,39 @@ export default function EventListScreen() {
 }
 
 const styles = StyleSheet.create({
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  activeTab: {
+    backgroundColor: '#2563eb',
+  },
+  tabText: {
+    fontWeight: '600',
+    color: '#374151',
+  },
+  activeTabText: {
+    color: 'white',
+  },
+  searchInput: {
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#f3f4f6',
+    fontSize: 14,
+    borderColor: '#e5e7eb',
+    borderWidth: 1,
+  },
   fab: {
     position: 'absolute',
     bottom: 24,
