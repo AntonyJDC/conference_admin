@@ -129,6 +129,29 @@ export const CreateEventScreen = () => {
                             onChangeText={text => handleChange('categories', text.split(',').map(c => c.trim()))}
                         />
 
+                        <View style={styles.row}>
+                            <View style={{ flex: 1, marginRight: 6 }}>
+                                <Text style={styles.label}>Capacidad total:</Text>
+                                <TextInput
+                                    placeholder="Capacidad"
+                                    placeholderTextColor="#6b7280"
+                                    value={form.capacity?.toString() ?? ''}
+                                    onChangeText={(text) => handleChange('capacity', text)}
+                                    style={styles.input}
+                                />
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 6 }}>
+                                <Text style={styles.label}>Cupos restantes:</Text>
+                                <TextInput
+                                    placeholder="Disponibles"
+                                    placeholderTextColor="#6b7280"
+                                    value={form.spotsLeft?.toString() ?? ''}
+                                    onChangeText={(text) => handleChange('spotsLeft', text)}
+                                    style={styles.input}
+                                />
+                            </View>
+                        </View>
+                        <Text style={styles.label}>Imagen:</Text>
                         <TouchableOpacity
                             onPress={async () => {
                                 const result = await ImagePicker.launchImageLibraryAsync({
