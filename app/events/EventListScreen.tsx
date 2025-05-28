@@ -97,7 +97,7 @@ export default function EventListScreen() {
   };
 
   const handleAdd = () => {
-    navigation.navigate('CreateEvent' as never);
+    navigation.navigate('CreateEvent');
   };
 
   return (
