@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Dimensions, ScrollView } from 'react-native';
 import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,19 +64,18 @@ export default function StatsScreen() {
   if (!data) {
     return <Text style={{ padding: 20 }}>Cargando estadísticas...</Text>;
   }
+  const sortedEvents = [...data.events].sort((a, b) => a.id.localeCompare(b.id));
 
   const subscriptionData = {
-    labels: data.events.map(e => e.title.slice(0, 6)),
-    datasets: [{ data: data.events.map(e => e.subscriptions) }],
+    labels: sortedEvents.map((_, index) => `${index + 1}`),
+    datasets: [{ data: sortedEvents.map(e => e.subscriptions) }],
   };
 
+  const reviewedEvents = sortedEvents.filter(e => e.totalReviews > 0);
+
   const ratingData = {
-    labels: data.events.filter(e => e.totalReviews > 0).map(e => e.title.slice(0, 6)),
-    datasets: [
-      {
-        data: data.events.filter(e => e.totalReviews > 0).map(e => e.averageRating),
-      },
-    ],
+    labels: reviewedEvents.map((_, index) => `${index + 1}`),
+    datasets: [{ data: reviewedEvents.map(e => e.averageRating) }],
   };
 
   const reviewPieData = [
@@ -117,7 +116,7 @@ export default function StatsScreen() {
   return (
     <FlatList
       style={styles.container}
-      data={data.events}
+      data={sortedEvents}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={
         <>
@@ -148,7 +147,9 @@ export default function StatsScreen() {
 
           <Text style={styles.title}>Gráficos</Text>
           <Text style={styles.subtitle}>Gráfico de suscripciones por evento</Text>
-          <BarChart data={subscriptionData} width={chartWidth} height={220} chartConfig={chartConfig} yAxisLabel={''} yAxisSuffix={''} />
+          <ScrollView horizontal>
+            <BarChart data={subscriptionData} width={chartWidth} height={220} chartConfig={chartConfig} yAxisLabel={''} yAxisSuffix={''} />
+          </ScrollView>
 
           <Text style={styles.subtitle}>Distribución de reviews</Text>
           <PieChart
@@ -163,13 +164,15 @@ export default function StatsScreen() {
           />
 
           <Text style={styles.subtitle}>Gráfico de calificaciones promedio</Text>
-          <BarChart
-            data={ratingData}
-            width={chartWidth}
-            height={220}
-            fromZero
-            chartConfig={chartConfig}
-            style={styles.chart} yAxisLabel={''} yAxisSuffix={''} />
+          <ScrollView horizontal>
+            <BarChart
+              data={ratingData}
+              width={chartWidth}
+              height={220}
+              fromZero
+              chartConfig={chartConfig}
+              style={styles.chart} yAxisLabel={''} yAxisSuffix={''} />
+          </ScrollView>
 
           <Text style={styles.subtitle}>Distribución de aforo total</Text>
           <PieChart
@@ -183,15 +186,16 @@ export default function StatsScreen() {
             absolute
           />
 
-
           <Text style={styles.title}>Eventos registrados</Text>
         </>
       }
 
-      renderItem={({ item }) => (
+      renderItem={({ item, index }) => (
         <View style={styles.eventRow}>
-          <View>
-            <Text style={styles.eventTitle}>{item.title}</Text>
+          <View style={{ maxWidth: '60%' }}>
+            <Text style={styles.eventTitle} numberOfLines={1} ellipsizeMode="tail">
+              {index + 1}. {item.title}
+            </Text>
             <Text style={styles.eventSubtitle}>
               ⭐ {item.averageRating?.toFixed(1)} · {item.totalReviews} reviews
             </Text>
@@ -278,6 +282,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
     fontWeight: '600',
+    overflow: 'hidden',
   },
   eventSubtitle: {
     fontSize: 12,
