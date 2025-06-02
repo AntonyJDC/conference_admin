@@ -1,13 +1,19 @@
 # Conference Admin
 
-Una aplicación móvil de administración de conferencias desarrollada con React Native y Expo, que permite gestionar eventos, visualizar estadísticas y administrar reseñas de usuarios.
+Una aplicación móvil para la administración de eventos de la aplicación de flutter [conference_app](https://github.com/AntonyJDC/conference_app). La aplicación está desarrollada con React Native y Expo, que permite gestionar eventos, visualizar estadísticas y administrar reseñas de usuarios.
+
+**Demo y explicación de sincronización de datos de la aplicación de flutter y la base de datos:**
+
+- [Demo de las dos aplicaciones funcionando simultaneamente](https://youtu.be/at_rZ3G42Wo)
+- [Explicación de sincronización de datos locales con la base de datos remota](https://youtu.be/OPsyPDMzfoY)
+
 
 ## 🚀 Características
 
 ### Gestión de Eventos
-- **Lista de eventos** con filtros por estado (todos, activos, finalizados) [1](#1-0) 
+- **Lista de eventos** con filtros por estado (todos, activos, finalizados)
 - **Búsqueda en tiempo real** por título de evento
-- **Creación de eventos** con formulario completo y subida de imágenes [2](#1-1) 
+- **Creación de eventos** con formulario completo y subida de imágenes
 - **Detalles del evento** con información de ocupación y reseñas
 - **Edición y eliminación** de eventos existentes
 
